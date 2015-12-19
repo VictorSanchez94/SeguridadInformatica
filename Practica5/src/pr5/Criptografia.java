@@ -223,19 +223,17 @@ public class Criptografia {
 	}
 	
 	private static byte[][] byteArrayFromString (String s) {
-		byte[][] b = new byte[(s.length()/112) +1][];
-//		System.out.println("lenght: " + b.length);
+		byte[][] b = new byte[(s.length()/116) +1][];
 		String temp = s;
 		int index = 0;
 		int j = 0;
-		for (int i=0; i<s.length(); i+=112) {
-			if (i+112 > s.length()) {
+		for (int i=0; i<s.length(); i+=116) {
+			if (i+116 > s.length()) {
 				j = s.length();
 			}
 			else {
-				j = i+112;
+				j = i+116;
 			}
-//			System.out.println(i + "  " + s.length() + "  " + index + "  " +j + "  " + s.length() + "  " + s.substring(i,j));
 			b[index] = s.substring(i,j).getBytes();
 			index++;
 		}
