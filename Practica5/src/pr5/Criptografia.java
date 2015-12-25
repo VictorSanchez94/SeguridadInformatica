@@ -31,7 +31,6 @@ public class Criptografia {
 	public static void main (String[] args) {
 		KeyPair pair;
 		int type = Integer.parseInt(args[0]);
-		type = 10;
 		switch (type) {
 		case 1:			//Prueba de generacion de hash de un texto
 			/*
