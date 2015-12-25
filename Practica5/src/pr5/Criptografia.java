@@ -1,14 +1,215 @@
 package pr5;
 
-import java.io.UnsupportedEncodingException;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.util.Random;
 
-import javax.crypto.*;
+import javax.crypto.Cipher;
 
+
+/**
+ * 
+ * Authors:
+ * 	Alberto Sabater Bailon, 546297
+ *	Victor Sanchez Ballabriga, 602665
+ * 
+ */
 public class Criptografia {
 	
 	private static Signature dsa;
+	
+	
+	public static void main (String[] args) {
+		KeyPair pair;
+		int type = Integer.parseInt(args[0]);
+		type = 10;
+		switch (type) {
+		case 1:			//Prueba de generacion de hash de un texto
+			/*
+			 * Tiempo: 13 ms
+			 * 
+			 * Se utiliza el algoritmo SHA-512 para obtener el hash que genera 
+			 * una clave de tamaño 512 bits
+			 */
+			
+			byte[] clave = hashClave("Seguridad Informatica 2015-2016");
+			System.out.println("HASH:");
+			System.out.println(clave);
+			break;
+		case 2:			//Prueba de generacion de hash doble de un texto
+			/*
+			 * Tiempo: 13 ms
+			 * 
+			 * Se utiliza dos veces el algoritmo SHA-512 para cifrar el mensaje
+			 * por duplicado
+			 */
+			
+			clave = hashClaveDoble("Seguridad Informatica 2015-2016");
+			System.out.println("HASH DOBLE:");
+			System.out.println(clave);
+			break;
+		case 3:			//Prueba de generacion de hash triple de un texto
+			/*
+			 * Tiempo: 15 ms
+			 * 
+			 * Se utiliza tres veces el algoritmo SHA-512 para cifrar el mensaje
+			 * por triplicado
+			 */
+			
+			clave = hashClaveTriple("Seguridad Informatica 2015-2016");
+			System.out.println("HASH TRIPLE:");
+			System.out.println(clave);
+			break;
+		case 4:			//Prueba de generacion pareja de claves publica/privada
+			/*
+			 * Tiempo: 240 ms
+			 * 
+			 * Se utiliza le algoritmo RSA para la generación de claves (1024-2048 bites), inicializandolo
+			 * con un número pseudoaleatorio generado con el algoritmo SHA1PRNG.
+			 */
+			
+			pair = clavePublicaPrivada(true);
+			System.out.println("PUBLIC: " + pair.getPublic());
+			System.out.println("PRIVATE: " + pair.getPrivate());
+			break;
+		case 5:			//Prueba de firma y verificacion de mensajes mediante firma digital
+			pair = clavePublicaPrivada(true);
+			byte[] b = firmarConClavePrivada("Seguridad Informatica 2015-2016", "DSAwithSHA1", pair.getPrivate());
+			System.out.println(b);
+			boolean correcto = verificarMsg(new String("Seguridad Informatica 2015-2016").getBytes(), b, pair.getPublic());
+			System.out.printf("Â¿Se ha verificado la clave?: %b.\n", correcto);
+			break;
+		case 6:			// Prueba encriptacion con clave publica y desencriptado con privada
+			/*
+			 * Tiempo: 5 ms para cifrar y 5 ms descrifrar el texto, + la generacion de las claves
+			 * 
+			 * Se generan las claves con el algoritmo RSA mencionado anteriormente y se 
+			 * cifra un texto con clave publica y se descifra con clave privada
+			 */
+			
+			try {
+				pair = clavePublicaPrivada(true);
+				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+				byte[][] encryptedText = encriptarConClavePublica("Seguridad Informatica 2015-2016", cipher, pair.getPublic(), true);
+				System.out.println("ENCRIPTADO:");
+				System.out.println(stringFromByteArrays(encryptedText));
+				System.out.println("\n======================================================================================\n");
+				String desencryptedText = desencriptarConClavePrivada(encryptedText, cipher, pair.getPrivate(), true);
+				System.out.println("DESENCRIPTADO:");
+				System.out.println(desencryptedText);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			break;
+		case 7:			// Prueba encriptacion con clave privada y desencriptado con publica
+			/*
+			 * Tiempo: 9 ms para cifrar y 1 ms para descrifrar el texto, + la generacion de las claves
+			 * 
+			 * Se generan las claves con el algoritmo RSA mencionado anteriormente y se 
+			 * cifra un texto con clave privada y se descifra con clave publica
+			 */
+			
+			try {
+				pair = clavePublicaPrivada(true);
+				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+				byte[][] encryptedText = encriptarConClavePrivada("Seguridad Informatica 2015-2016", cipher, pair.getPrivate(), true);
+				System.out.println("ENCRIPTADO:");
+				System.out.println(stringFromByteArrays(encryptedText));
+				System.out.println("\n======================================================================================\n");
+				String desencryptedText = desencriptarConClavePublica(encryptedText, cipher, pair.getPublic(), true);
+				System.out.println("DESENCRIPTADO:");
+				System.out.println(desencryptedText);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			break;
+		case 8:			//Prueba encriptando un texto de 50000 caracteres
+			/*
+			 * Tiempo: 609 ms para cifrar el texto y 32 ms para descifrarlo
+			 * 
+			 * Se generan las claves con el algoritmo RSA mencionado anteriormente y se
+			 * cifra un texto de 50000 caracteres con clave privada, y se descifra con 
+			 * clave publica
+			 */
+			
+			try {
+				String st = randomString(50000);
+				pair = clavePublicaPrivada(true);
+				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+				byte[][] encryptedText = encriptarConClavePrivada(st, cipher, pair.getPrivate(), true);
+				System.out.println("ENCRIPTADO");
+//				System.out.println(stringFromByteArrays(encryptedText));
+				System.out.println("\n======================================================================================\n");
+				String desencryptedText = desencriptarConClavePublica(encryptedText, cipher, pair.getPublic(), true);
+				System.out.println("DESENCRIPTADO:");
+				System.out.println(desencryptedText);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			break;
+		case 9:
+			/*
+			 * Tiempo: 6331 ms 
+			 * 
+			 * Se cifran 100 mensajes de 200 caracteres aleatorios con clave publica y se 
+			 * descifran con clave privada, con los algoritmos descritos anteriormente
+			 */
+			
+			long t1 = System.currentTimeMillis();
+			for (int i=0; i<100; i++) {
+				try {
+					pair = clavePublicaPrivada(false);
+					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					byte[][] encryptedText = encriptarConClavePublica(randomString(200), cipher, pair.getPublic(), false);
+					desencriptarConClavePrivada(encryptedText, cipher, pair.getPrivate(), false);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			long t2 = System.currentTimeMillis();
+			long tFinal = t2-t1;
+			
+			System.out.println("Tiempo de cifrado con clave publica y descifrado con clave privada de 100 mensajes aleatorios: " + tFinal);
+			break;
+		case 10:
+			/*
+			 * Tiempo: 6269 ms 
+			 * 
+			 * Se cifran 100 mensajes de 200 caracteres aleatorios con clave privada y se 
+			 * descifran con clave publica, con los algoritmos descritos anteriormente
+			 */
+			
+			t1 = System.currentTimeMillis();
+			for (int i=0; i<100; i++) {
+				try {
+					pair = clavePublicaPrivada(false);
+					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					byte[][] encryptedText = encriptarConClavePrivada(randomString(200), cipher, pair.getPrivate(), false);
+					desencriptarConClavePublica(encryptedText, cipher, pair.getPublic(), false);
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			t2 = System.currentTimeMillis();
+			tFinal = t2-t1;
+			
+			System.out.println("Tiempo de cifrado con clave privada y descifrado con clave publica de 100 mensajes aleatorios: " + tFinal);
+			break;
+		}
+		
+	}
+	
 	
 	public static byte[] hashClave (String clave) {
 		try {
@@ -54,7 +255,7 @@ public class Criptografia {
 		} 
 	}
 	
-	public static KeyPair clavePublicaPrivada() {
+	public static KeyPair clavePublicaPrivada(boolean log) {
 		try {
 			long t1 = System.currentTimeMillis();
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
@@ -62,7 +263,7 @@ public class Criptografia {
 			keyGen.initialize(1024, secRdm);
 			KeyPair pair = keyGen.generateKeyPair();
 			long t2 = System.currentTimeMillis();
-			System.out.printf("Tiempo de generacion de las claves: %d ms.\n", t2-t1);
+			if (log ) System.out.printf("Tiempo de generacion de las claves: %d ms.\n", t2-t1);
 			return pair;
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
@@ -103,7 +304,7 @@ public class Criptografia {
 		return false;
 	}
 
-	public static byte[][] encriptarConClavePublica(String text, Cipher cipher, PublicKey publicKey) {
+	public static byte[][] encriptarConClavePublica(String text, Cipher cipher, PublicKey publicKey, boolean log) {
 		try {
 			long t1 = System.currentTimeMillis();
 //			byte[] plainText = text.getBytes("UTF8");
@@ -117,7 +318,9 @@ public class Criptografia {
 //			cipherText = cipher.doFinal(plainText);
 			long t2 = System.currentTimeMillis();
 			long tFinal = t2-t1;
-			System.out.printf("Tiempo para encriptar el texto con clave publica: %d ms.\n", tFinal);
+			
+			if (log ) System.out.printf("Tiempo para encriptar el texto con clave publica: %d ms.\n", tFinal);
+
 			return cipherText;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -125,7 +328,7 @@ public class Criptografia {
 		return null;
 	}
 	
-	public static String desencriptarConClavePrivada(byte[][] cipherText, Cipher cipher, PrivateKey privateKey) {
+	public static String desencriptarConClavePrivada(byte[][] cipherText, Cipher cipher, PrivateKey privateKey, boolean log) {
 		try {
 			long t1 = System.currentTimeMillis();
 			cipher.init(Cipher.DECRYPT_MODE, privateKey);
@@ -137,7 +340,7 @@ public class Criptografia {
 			
 			long t2 = System.currentTimeMillis();
 			long tFinal = t2-t1;
-			System.out.printf("Tiempo para desencriptar el texto con clave privada: %d ms.\n", tFinal);
+			if (log ) System.out.printf("Tiempo para desencriptar el texto con clave privada: %d ms.\n", tFinal);
 //			return new String(newPlainText, "UTF8");
 			return stringFromByteArrays(cipherText);
 		} catch (Exception e) {
@@ -146,7 +349,7 @@ public class Criptografia {
 		return null;
 	}
 	
-	public static byte[][] encriptarConClavePrivada(String text, Cipher cipher, PrivateKey privateKey) {
+	public static byte[][] encriptarConClavePrivada(String text, Cipher cipher, PrivateKey privateKey, boolean log) {
 		try {
 			long t1 = System.currentTimeMillis();
 			cipher.init(Cipher.ENCRYPT_MODE, privateKey);
@@ -168,7 +371,7 @@ public class Criptografia {
 			// cipherText = cipher.doFinal(plainText);
 			long t2 = System.currentTimeMillis();
 			long tFinal = t2 - t1;
-			System.out.printf("Tiempo para encriptar el texto con clave privada: %d ms.\n", tFinal);
+			if (log) System.out.printf("Tiempo para encriptar el texto con clave privada: %d ms.\n", tFinal);
 			return cipherText;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -176,7 +379,7 @@ public class Criptografia {
 		return null;
 	}
 	
-	public static String desencriptarConClavePublica(byte[][] cipherText, Cipher cipher, PublicKey publicKey) {
+	public static String desencriptarConClavePublica(byte[][] cipherText, Cipher cipher, PublicKey publicKey, boolean log) {
 		try {
 			long t1 = System.currentTimeMillis();
 			cipher.init(Cipher.DECRYPT_MODE, publicKey);
@@ -188,7 +391,7 @@ public class Criptografia {
 			//byte[] newPlainText = cipher.doFinal(cipherText);
 			long t2 = System.currentTimeMillis();
 			long tFinal = t2-t1;
-			System.out.printf("Tiempo para desencriptar el texto con clave publica: %d ms.\n", tFinal);
+			if (log) System.out.printf("Tiempo para desencriptar el texto con clave publica: %d ms.\n", tFinal);
 //			return new String(newPlainText, "UTF8");
 			return stringFromByteArrays(cipherText);
 		} catch (Exception e) {
@@ -224,7 +427,6 @@ public class Criptografia {
 	
 	private static byte[][] byteArrayFromString (String s) {
 		byte[][] b = new byte[(s.length()/116) +1][];
-		String temp = s;
 		int index = 0;
 		int j = 0;
 		for (int i=0; i<s.length(); i+=116) {
@@ -247,97 +449,6 @@ public class Criptografia {
 		} 
 		
 		return b;
-	}
-	
-	public static void main (String[] args) {
-		KeyPair pair;
-		int type = Integer.parseInt(args[0]);
-		type = 8;
-		switch (type) {
-		case 1:			//Prueba de generacion de hash de un texto
-			byte[] clave = hashClave("Seguridad Informatica 2015-2016");
-			System.out.println("HASH:");
-			System.out.println(clave);
-			break;
-		case 2:			//Prueba de generacion de hash doble de un texto
-			clave = hashClaveDoble("Seguridad Informatica 2015-2016");
-			System.out.println("HASH DOBLE:");
-			System.out.println(clave);
-			break;
-		case 3:			//Prueba de generacion de hash triple de un texto
-			clave = hashClaveTriple("Seguridad Informatica 2015-2016");
-			System.out.println("HASH TRIPLE:");
-			System.out.println(clave);
-			break;
-		case 4:			//Prueba de generacion pareja de claves publica/privada
-			pair = clavePublicaPrivada();
-			System.out.println("PUBLIC: " + pair.getPublic());
-			System.out.println("PRIVATE: " + pair.getPrivate());
-			break;
-		case 5:			//Prueba de firma y verificacion de mensajes mediante firma digital
-			pair = clavePublicaPrivada();
-			byte[] b = firmarConClavePrivada("Seguridad Informatica 2015-2016", "DSAwithSHA1", pair.getPrivate());
-			System.out.println(b);
-			boolean correcto = verificarMsg(new String("Seguridad Informatica 2015-2016").getBytes(), b, pair.getPublic());
-			System.out.printf("Â¿Se ha verificado la clave?: %b.\n", correcto);
-			break;
-		case 6:			// Prueba encriptacion con clave publica y desencriptado con privada
-			try {
-				pair = clavePublicaPrivada();
-				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-				byte[][] encryptedText = encriptarConClavePublica("Seguridad Informatica 2015-2016", cipher, pair.getPublic());
-				System.out.println("ENCRIPTADO:");
-				System.out.println(stringFromByteArrays(encryptedText));
-				System.out.println("\n======================================================================================\n");
-				String desencryptedText = desencriptarConClavePrivada(encryptedText, cipher, pair.getPrivate());
-				System.out.println("DESENCRIPTADO:");
-				System.out.println(desencryptedText);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			break;
-		case 7:			// Prueba encriptacion con clave privada y desencriptado con publica
-			try {
-				pair = clavePublicaPrivada();
-				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-				byte[][] encryptedText = encriptarConClavePrivada("Seguridad Informatica 2015-2016", cipher, pair.getPrivate());
-				System.out.println("ENCRIPTADO:");
-				System.out.println(stringFromByteArrays(encryptedText));
-				System.out.println("\n======================================================================================\n");
-				String desencryptedText = desencriptarConClavePublica(encryptedText, cipher, pair.getPublic());
-				System.out.println("DESENCRIPTADO:");
-				System.out.println(desencryptedText);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			break;
-		case 8:			//Prueba encriptando un texto de 50000 caracteres
-			try {
-				String st = randomString(50000);
-				pair = clavePublicaPrivada();
-				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-				byte[][] encryptedText = encriptarConClavePrivada(st, cipher, pair.getPrivate());
-				System.out.println("ENCRIPTADO");
-//				System.out.println(stringFromByteArrays(encryptedText));
-				System.out.println("\n======================================================================================\n");
-				String desencryptedText = desencriptarConClavePublica(encryptedText, cipher, pair.getPublic());
-				System.out.println("DESENCRIPTADO:");
-				System.out.println(desencryptedText);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			
-			break;
-		case 9:			//Prueba generando 100 mensajes de 1000 caracteres para encriptarlos y desencriptarlos midiendo tiempos
-			long t1 = System.currentTimeMillis();
-			break;
-		case 10:			
-			String s = randomString(1000);
-//			System.out.println("s: " + s.length());
-			byteArrayFromString(s);
-			break;
-		}
-		
 	}
 	
 }
