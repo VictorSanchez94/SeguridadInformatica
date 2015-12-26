@@ -38,7 +38,7 @@ public class Criptografia {
 			 * Tiempo: 13 ms
 			 * 
 			 * Se utiliza el algoritmo SHA-512 para obtener el hash que genera 
-			 * una clave de tama�o 512 bits
+			 * una clave de tamano 512 bits
 			 */
 			
 			byte[] clave = hashClave("Seguridad Informatica 2015-2016");
@@ -73,8 +73,8 @@ public class Criptografia {
 			/*
 			 * Tiempo: 240 ms
 			 * 
-			 * Se utiliza le algoritmo RSA para la generaci�n de claves (1024-2048 bites), inicializandolo
-			 * con un n�mero pseudoaleatorio generado con el algoritmo SHA1PRNG.
+			 * Se utiliza le algoritmo RSA para la generacion de claves (1024-2048 bites), inicializandolo
+			 * con un numero pseudoaleatorio generado con el algoritmo SHA1PRNG.
 			 */
 			
 			pair = clavePublicaPrivada(true);
@@ -83,10 +83,10 @@ public class Criptografia {
 			break;
 		case 5:			//Prueba de firma y verificacion de mensajes mediante firma digital
 			/*
-			 * Tiempo: 160 ms para firmar el texto y 1 ms para comprobar la firma + generacion de claves
+			 * Tiempo: 220 ms para firmar el texto y 1 ms para comprobar la firma + generacion de claves
 			 * 
-			 * Se firma un mensaje corto con la clave privada y a continuación se comprueba dicha firma
-			 * con la clave pública, simulando el reto que lanza una máquina a otra para comprobar que
+			 * Se firma un mensaje corto con la clave privada y a continuacion se comprueba dicha firma
+			 * con la clave publica, simulando el reto que lanza una maquina a otra para comprobar que
 			 * es quien dice ser por su certificado.
 			 */
 			pair = clavePublicaPrivada(true);
