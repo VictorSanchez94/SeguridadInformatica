@@ -14,6 +14,7 @@ import java.security.SignatureException;
 import java.util.Random;
 
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 
 
 /**
@@ -37,7 +38,7 @@ public class Criptografia {
 			 * Tiempo: 13 ms
 			 * 
 			 * Se utiliza el algoritmo SHA-512 para obtener el hash que genera 
-			 * una clave de tamaÒo 512 bits
+			 * una clave de tamaÔøΩo 512 bits
 			 */
 			
 			byte[] clave = hashClave("Seguridad Informatica 2015-2016");
@@ -72,8 +73,8 @@ public class Criptografia {
 			/*
 			 * Tiempo: 240 ms
 			 * 
-			 * Se utiliza le algoritmo RSA para la generaciÛn de claves (1024-2048 bites), inicializandolo
-			 * con un n˙mero pseudoaleatorio generado con el algoritmo SHA1PRNG.
+			 * Se utiliza le algoritmo RSA para la generaciÔøΩn de claves (1024-2048 bites), inicializandolo
+			 * con un nÔøΩmero pseudoaleatorio generado con el algoritmo SHA1PRNG.
 			 */
 			
 			pair = clavePublicaPrivada(true);
@@ -81,6 +82,13 @@ public class Criptografia {
 			System.out.println("PRIVATE: " + pair.getPrivate());
 			break;
 		case 5:			//Prueba de firma y verificacion de mensajes mediante firma digital
+			/*
+			 * Tiempo: 160 ms para firmar el texto y 1 ms para comprobar la firma + generacion de claves
+			 * 
+			 * Se firma un mensaje corto con la clave privada y a continuaci√≥n se comprueba dicha firma
+			 * con la clave p√∫blica, simulando el reto que lanza una m√°quina a otra para comprobar que
+			 * es quien dice ser por su certificado.
+			 */
 			pair = clavePublicaPrivada(true);
 			byte[] b = firmarConClavePrivada("Seguridad Informatica 2015-2016", "DSAwithSHA1", pair.getPrivate());
 			System.out.println(b);
@@ -275,29 +283,51 @@ public class Criptografia {
 	public static byte[] firmarConClavePrivada (String data, String firma, PrivateKey privateKey) {
 		try {
 			long t1 = System.currentTimeMillis();
-			dsa = Signature.getInstance(firma);
-			dsa.initSign(privateKey);
-			dsa.update(data.getBytes());
-			byte[] sig = dsa.sign();
+			MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+		    messageDigest.update( data.getBytes() );
+		    byte[] md = messageDigest.digest();
+			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+			cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+		    byte[] cipherText = cipher.doFinal(md);
 			long t2 = System.currentTimeMillis();
 			System.out.printf("Tiempo para firmar el texto: %d ms.\n", t2-t1);
-			return sig;
-		} catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+		    return cipherText;
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 	
 	public static boolean verificarMsg (byte[] data, byte[] sig, PublicKey publicKey) {
+		Cipher cipher;
 		try {
 			long t1 = System.currentTimeMillis();
-			dsa.initVerify(publicKey);
-			dsa.update(data);
-			boolean correcta = dsa.verify(sig);
-			long t2 = System.currentTimeMillis();
-			System.out.printf("Tiempo para verificar la firma digital: %d ms.\n", t2-t1);
-			return correcta;
-		} catch (InvalidKeyException | SignatureException e) {
+			cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+			cipher.init(Cipher.DECRYPT_MODE, publicKey);
+			byte[] newMD = cipher.doFinal(sig);
+		    MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+		    messageDigest.update(data);
+		    byte[] oldMD = messageDigest.digest();
+		    
+		    int len = newMD.length;
+		    if (len > oldMD.length) {
+		      System.out.println( "Firma no verificada, mensajes de distintos tama√±os.");
+		      long t2 = System.currentTimeMillis();
+		      System.out.printf("Tiempo para comprobar la firma del texto: %d ms.\n", t2-t1);
+		      return false;
+		    }
+		    for (int i = 0; i < len; ++i)
+		      if (oldMD[i] != newMD[i]) {
+		        System.out.println( "Firma no verificada, mensaje no identico." );
+		        long t2 = System.currentTimeMillis();
+				System.out.printf("Tiempo para comprobar la firma del texto: %d ms.\n", t2-t1);
+		        return false;
+		      }
+		    System.out.println( "Firma digital verificada." );
+		    long t2 = System.currentTimeMillis();
+			System.out.printf("Tiempo para comprobar la firma del texto: %d ms.\n", t2-t1);
+		    return true;
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return false;
